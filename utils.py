@@ -7,6 +7,9 @@ from dotenv import load_dotenv
 import ffmpeg
 import shutil
 import mimetypes
+import requests
+import json
+import re
 
 # Try to import magic, but don't fail if not available
 try:
@@ -26,6 +29,29 @@ if not os.getenv("ASSEMBLYAI_API_KEY"):
 
 # Configuring AssemblyAI client
 aai.settings.api_key = os.getenv("ASSEMBLYAI_API_KEY")
+
+def extract_loom_video_id(url: str) -> str:
+    """Extract the video ID from a Loom URL."""
+    match = re.search(r'loom.com/share/([a-zA-Z0-9]+)', url)
+    if not match:
+        raise Exception("Invalid Loom URL format")
+    return match.group(1)
+
+def get_loom_video_data(video_id: str) -> dict:
+    """Get video data from Loom API."""
+    api_url = f"https://www.loom.com/api/campaigns/sessions/{video_id}"
+    response = requests.get(api_url)
+    
+    if response.status_code != 200:
+        raise Exception("Could not access Loom video. Make sure it's public and the URL is correct.")
+    
+    try:
+        data = response.json()
+        if 'data' not in data or 'url' not in data['data']:
+            raise Exception("Could not find video URL in Loom response")
+        return data['data']
+    except json.JSONDecodeError:
+        raise Exception("Invalid response from Loom API")
 
 def is_url(path: str) -> bool:
     """Check if the given path is a URL."""
@@ -113,6 +139,56 @@ def convert_video_to_audio(video_path: str) -> str:
     except Exception as e:
         raise Exception(f"Error converting video to audio: {str(e)}")
 
+def handle_loom_video(url: str) -> str:
+    """
+    Handle Loom video download.
+    
+    Args:
+        url (str): Loom share URL
+        
+    Returns:
+        str: Path to the downloaded audio file
+    """
+    try:
+        # Extract video ID and get video data
+        video_id = extract_loom_video_id(url)
+        video_data = get_loom_video_data(video_id)
+        
+        # Get direct video URL
+        video_url = video_data.get('url')
+        if not video_url:
+            raise Exception("Could not get direct video URL from Loom")
+        
+        # Download using yt-dlp
+        temp_dir = tempfile.mkdtemp()
+        output_template = os.path.join(temp_dir, '%(id)s.%(ext)s')
+        
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+            'outtmpl': output_template,
+            'quiet': True,
+            'no_warnings': True,
+        }
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(video_url, download=True)
+            if info is None:
+                raise Exception("Could not download Loom video")
+            
+            audio_path = os.path.join(temp_dir, f"{info['id']}.mp3")
+            if not os.path.exists(audio_path):
+                raise Exception("Audio extraction failed")
+            
+            return audio_path
+            
+    except Exception as e:
+        raise Exception(f"Error processing Loom video: {str(e)}")
+
 def download_video(path: str) -> str:
     """
     Process video from URL or local path and extract audio.
@@ -132,6 +208,10 @@ def download_video(path: str) -> str:
     # If it's a local file, convert it directly
     if not is_url(path):
         return convert_video_to_audio(path)
+    
+    # Handle Loom videos separately
+    if 'loom.com/share' in path:
+        return handle_loom_video(path)
     
     # If it's a URL, use yt-dlp to download
     ydl_opts = {
