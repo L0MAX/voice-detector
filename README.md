@@ -1,16 +1,20 @@
 # Accent Detector
 
-A web application that analyzes speaker accents from video URLs. This tool helps evaluate spoken English accents for hiring purposes.
+A web application that analyzes speaker accents from video content for hiring purposes. Built with Streamlit and AssemblyAI.
 
 ## Features
 
-- Accepts public video URLs (Loom or direct MP4 links)
+- Accepts video uploads and URLs (Loom, direct MP4 links, YouTube)
 - Extracts audio from videos
 - Detects and classifies English accents
 - Provides confidence scores for accent detection
 - Generates brief summaries of accent analysis
 
-## Setup
+## Live Demo
+
+Visit the live application at: [Your Streamlit App URL]
+
+## Local Setup
 
 1. Clone this repository:
 ```bash
@@ -31,26 +35,52 @@ source venv/bin/activate  # On Unix/macOS
 pip install -r requirements.txt
 ```
 
-4. Set up environment variables:
+4. Install FFmpeg:
+```bash
+# On macOS
+brew install ffmpeg
+
+# On Ubuntu/Debian
+sudo apt-get install ffmpeg
+
+# On Windows
+# Download from https://ffmpeg.org/download.html
+```
+
+5. Set up environment variables:
 Create a `.env` file in the root directory and add your API keys:
 ```
 ASSEMBLYAI_API_KEY=your_key_here
 ```
 
-5. Run the application:
+6. Run the application locally:
 ```bash
 streamlit run app.py
 ```
 
-## Usage
+## Deployment on Streamlit Cloud
 
-1. Open the application in your web browser (default: http://localhost:8501)
-2. Paste a public video URL into the input field
-3. Click "Analyze Accent" to process the video
-4. View the results, including:
-   - Detected accent classification
-   - Confidence score
-   - Brief analysis summary
+1. Fork this repository to your GitHub account
+
+2. Visit [Streamlit Cloud](https://streamlit.io/cloud)
+
+3. Click "New app" and select your forked repository
+
+4. Set the following:
+   - Main file path: `app.py`
+   - Add your AssemblyAI API key as a secret:
+     - Name: `ASSEMBLYAI_API_KEY`
+     - Value: Your API key
+
+5. Click "Deploy"
+
+## Usage Tips
+
+For best results:
+- Use videos under 5 minutes
+- Ensure clear speech audio
+- Avoid background noise
+- Use supported video formats (MP4, MOV, AVI, MKV)
 
 ## Supported Accents
 
@@ -69,13 +99,13 @@ The tool can detect and classify the following English accents:
 This application uses:
 - Streamlit for the web interface
 - AssemblyAI for speech recognition and accent detection
-- yt-dlp for video download and audio extraction
+- FFmpeg for video processing
 - Custom accent analysis algorithms
 
 ## Limitations
 
 - Only processes public video URLs
-- Requires clear audio quality for accurate detection
+- Requires clear audio quality
 - Limited to English language accent detection
 - Processing time depends on video length
 

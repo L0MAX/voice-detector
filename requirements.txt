@@ -3,5 +3,4 @@ python-dotenv==1.0.1
 assemblyai==0.20.2
 yt-dlp==2024.3.10
 requests==2.31.0
-python-magic==0.4.27
 ffmpeg-python==0.2.0 
